@@ -3,9 +3,12 @@ package net.wesjd.anvilgui;
 
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+
+import com.google.common.base.Preconditions;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.wesjd.anvilgui.version.VersionMatcher;
 import net.wesjd.anvilgui.version.VersionWrapper;
-import org.apache.commons.lang.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -29,10 +32,13 @@ import org.bukkit.plugin.Plugin;
  */
 public class AnvilGUI {
 
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer
+            .builder().useUnusualXRepeatedCharacterHexFormat().hexColors().build();
+
     /**
      * The local {@link VersionWrapper} object for the server's version
      */
-    private static VersionWrapper WRAPPER = new VersionMatcher().match();
+    private static final VersionWrapper WRAPPER = new VersionMatcher().match();
 
     /**
      * The {@link Plugin} that this anvil GUI is associated with
@@ -45,7 +51,7 @@ public class AnvilGUI {
     /**
      * The title of the anvil inventory
      */
-    private String inventoryTitle;
+    private Component inventoryTitle;
     /**
      * The ItemStack that is in the {@link Slot#INPUT_LEFT} slot.
      */
@@ -140,6 +146,34 @@ public class AnvilGUI {
             Consumer<Player> inputLeftClickListener,
             Consumer<Player> inputRightClickListener,
             BiFunction<Player, String, Response> completeFunction) {
+        this(plugin, player, LEGACY_SERIALIZER.deserialize(inventoryTitle), LEGACY_SERIALIZER.deserialize(itemText),
+                inputLeft, inputRight, preventClose, closeListener, inputLeftClickListener, inputRightClickListener, completeFunction);
+    }
+
+    /**
+     * Create an AnvilGUI and open it for the player.
+     *
+     * @param plugin           A {@link org.bukkit.plugin.java.JavaPlugin} instance
+     * @param player           The {@link Player} to open the inventory for
+     * @param inventoryTitle   What to have the text already set to
+     * @param itemText         The name of the item in the first slot of the anvilGui
+     * @param inputLeft        The material of the item in the first slot of the anvilGUI
+     * @param preventClose     Whether to prevent the inventory from closing
+     * @param closeListener    A {@link Consumer} when the inventory closes
+     * @param completeFunction A {@link BiFunction} that is called when the player clicks the {@link Slot#OUTPUT} slot
+     */
+    private AnvilGUI(
+            Plugin plugin,
+            Player player,
+            Component inventoryTitle,
+            Component itemText,
+            ItemStack inputLeft,
+            ItemStack inputRight,
+            boolean preventClose,
+            Consumer<Player> closeListener,
+            Consumer<Player> inputLeftClickListener,
+            Consumer<Player> inputRightClickListener,
+            BiFunction<Player, String, Response> completeFunction) {
         this.plugin = plugin;
         this.player = player;
         this.inventoryTitle = inventoryTitle;
@@ -157,7 +191,7 @@ public class AnvilGUI {
             }
 
             ItemMeta paperMeta = this.inputLeft.getItemMeta();
-            paperMeta.setDisplayName(itemText);
+            paperMeta.displayName(itemText);
             this.inputLeft.setItemMeta(paperMeta);
         }
 
@@ -244,12 +278,12 @@ public class AnvilGUI {
                     final ItemStack clicked = inventory.getItem(Slot.OUTPUT);
                     if (clicked == null || clicked.getType() == Material.AIR) return;
 
-                    final Response response = completeFunction.apply(
+                    @SuppressWarnings("deprecation") final Response response = completeFunction.apply(
                             clicker,
                             clicked.hasItemMeta() ? clicked.getItemMeta().getDisplayName() : "");
-                    if (response.getText() != null) {
+                    if (response.text() != null) {
                         final ItemMeta meta = clicked.getItemMeta();
-                        meta.setDisplayName(response.getText());
+                        meta.displayName(response.text());
                         clicked.setItemMeta(meta);
                         inventory.setItem(Slot.INPUT_LEFT, clicked);
                     } else if (response.getInventoryToOpen() != null) {
@@ -324,11 +358,11 @@ public class AnvilGUI {
         /**
          * The text that will be displayed to the user
          */
-        private String title = "Repair & Name";
+        private Component title = Component.translatable("container.repair");
         /**
          * The starting text on the item
          */
-        private String itemText;
+        private Component itemText;
         /**
          * An {@link ItemStack} to be put in the left input slot
          */
@@ -356,7 +390,7 @@ public class AnvilGUI {
          * @throws IllegalArgumentException when the closeListener is null
          */
         public Builder onClose(Consumer<Player> closeListener) {
-            Validate.notNull(closeListener, "closeListener cannot be null");
+            Preconditions.checkNotNull(closeListener, "closeListener cannot be null");
             this.closeListener = closeListener;
             return this;
         }
@@ -391,7 +425,7 @@ public class AnvilGUI {
          * @throws IllegalArgumentException when the completeFunction is null
          */
         public Builder onComplete(BiFunction<Player, String, Response> completeFunction) {
-            Validate.notNull(completeFunction, "Complete function cannot be null");
+            Preconditions.checkNotNull(completeFunction, "Complete function cannot be null");
             this.completeFunction = completeFunction;
             return this;
         }
@@ -404,7 +438,7 @@ public class AnvilGUI {
          * @throws IllegalArgumentException if the plugin is null
          */
         public Builder plugin(Plugin plugin) {
-            Validate.notNull(plugin, "Plugin cannot be null");
+            Preconditions.checkNotNull(plugin, "Plugin cannot be null");
             this.plugin = plugin;
             return this;
         }
@@ -417,8 +451,8 @@ public class AnvilGUI {
          * @throws IllegalArgumentException if the text is null
          */
         public Builder text(String text) {
-            Validate.notNull(text, "Text cannot be null");
-            this.itemText = text;
+            Preconditions.checkNotNull(text, "Text cannot be null");
+            this.itemText = LEGACY_SERIALIZER.deserialize(text);
             return this;
         }
 
@@ -430,7 +464,33 @@ public class AnvilGUI {
          * @throws IllegalArgumentException if the title is null
          */
         public Builder title(String title) {
-            Validate.notNull(title, "title cannot be null");
+            Preconditions.checkNotNull(title, "title cannot be null");
+            this.title = LEGACY_SERIALIZER.deserialize(title);
+            return this;
+        }
+
+        /**
+         * Sets the inital item-text that is displayed to the user
+         *
+         * @param text The initial name of the item in the anvil
+         * @return The {@link Builder} instance
+         * @throws IllegalArgumentException if the text is null
+         */
+        public Builder text(Component text) {
+            Preconditions.checkNotNull(text, "Text cannot be null");
+            this.itemText = text;
+            return this;
+        }
+
+        /**
+         * Sets the AnvilGUI title that is to be displayed to the user
+         *
+         * @param title The title that is to be displayed to the user
+         * @return The {@link Builder} instance
+         * @throws IllegalArgumentException if the title is null
+         */
+        public Builder title(Component title) {
+            Preconditions.checkNotNull(title, "title cannot be null");
             this.title = title;
             return this;
         }
@@ -456,7 +516,7 @@ public class AnvilGUI {
          * @throws IllegalArgumentException if the {@link ItemStack} is null
          */
         public Builder itemLeft(ItemStack item) {
-            Validate.notNull(item, "item cannot be null");
+            Preconditions.checkNotNull(item, "item cannot be null");
             this.itemLeft = item;
             return this;
         }
@@ -480,9 +540,9 @@ public class AnvilGUI {
          * @throws IllegalArgumentException when the onComplete function, plugin, or player is null
          */
         public AnvilGUI open(Player player) {
-            Validate.notNull(plugin, "Plugin cannot be null");
-            Validate.notNull(completeFunction, "Complete function cannot be null");
-            Validate.notNull(player, "Player cannot be null");
+            Preconditions.checkNotNull(plugin, "Plugin cannot be null");
+            Preconditions.checkNotNull(completeFunction, "Complete function cannot be null");
+            Preconditions.checkNotNull(player, "Player cannot be null");
             return new AnvilGUI(
                     plugin,
                     player,
@@ -506,7 +566,7 @@ public class AnvilGUI {
         /**
          * The text that is to be displayed to the user
          */
-        private final String text;
+        private final Component text;
 
         private final Inventory openInventory;
 
@@ -515,7 +575,7 @@ public class AnvilGUI {
          *
          * @param text The text that is to be displayed to the user, which can be null to close the inventory
          */
-        private Response(String text, Inventory openInventory) {
+        private Response(Component text, Inventory openInventory) {
             this.text = text;
             this.openInventory = openInventory;
         }
@@ -526,6 +586,10 @@ public class AnvilGUI {
          * @return The text that is to be displayed to the user
          */
         public String getText() {
+            return LEGACY_SERIALIZER.serialize(text);
+        }
+
+        public Component text() {
             return text;
         }
 
@@ -554,8 +618,19 @@ public class AnvilGUI {
          * @return An {@link Response} object for when the anvil GUI is to display text to the user
          */
         public static Response text(String text) {
+            return new Response(LEGACY_SERIALIZER.deserialize(text), null);
+        }
+
+        /**
+         * Returns an {@link Response} object for when the anvil GUI is to display text to the user
+         *
+         * @param text The text that is to be displayed to the user
+         * @return An {@link Response} object for when the anvil GUI is to display text to the user
+         */
+        public static Response text(Component text) {
             return new Response(text, null);
         }
+
 
         /**
          * Returns an {@link Response} object for when the GUI should open the provided inventory

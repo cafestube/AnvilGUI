@@ -1,6 +1,7 @@
 package net.wesjd.anvilgui.version;
 
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 
@@ -35,7 +36,7 @@ public interface VersionWrapper {
      * @param containerId    The container id to open
      * @param inventoryTitle The title of the inventory to be opened (only works in Minecraft 1.14 and above)
      */
-    void sendPacketOpenWindow(Player player, int containerId, String inventoryTitle);
+    void sendPacketOpenWindow(Player player, int containerId, Component inventoryTitle);
 
     /**
      * Sends PacketPlayOutCloseWindow to the player with the contaienr id
@@ -91,5 +92,5 @@ public interface VersionWrapper {
      * @param title  The title of the anvil inventory
      * @return The Container instance
      */
-    Object newContainerAnvil(Player player, String title);
+    Object newContainerAnvil(Player player, Component title);
 }

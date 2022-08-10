@@ -3,6 +3,8 @@ package net.wesjd.anvilgui.version;
 
 import org.bukkit.Bukkit;
 
+import java.lang.reflect.InvocationTargetException;
+
 /**
  * Matches the server's NMS version to its {@link VersionWrapper}
  *
@@ -26,8 +28,8 @@ public class VersionMatcher {
                 .substring(1);
         try {
             return (VersionWrapper) Class.forName(getClass().getPackage().getName() + ".Wrapper" + serverVersion)
-                    .newInstance();
-        } catch (IllegalAccessException | InstantiationException exception) {
+                    .getDeclaredConstructor().newInstance();
+        } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException exception) {
             throw new IllegalStateException(
                     "Failed to instantiate version wrapper for version " + serverVersion, exception);
         } catch (ClassNotFoundException exception) {

@@ -1,39 +1,42 @@
 package net.wesjd.anvilgui.version.special;
 
 
-import net.minecraft.core.BlockPosition;
-import net.minecraft.network.chat.IChatBaseComponent;
-import net.minecraft.world.IInventory;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.inventory.ContainerAccess;
-import net.minecraft.world.inventory.ContainerAnvil;
+
+import io.papermc.paper.adventure.PaperAdventure;
+import net.kyori.adventure.text.Component;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.inventory.ContainerLevelAccess;
 import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
-public class AnvilContainer1_19_1_R1 extends ContainerAnvil {
-    public AnvilContainer1_19_1_R1(Player player, int containerId, String guiTitle) {
+public class AnvilContainer1_19_1_R1 extends AnvilMenu {
+    public AnvilContainer1_19_1_R1(Player player, int containerId, Component guiTitle) {
         super(
                 containerId,
-                ((CraftPlayer) player).getHandle().fA(),
-                ContainerAccess.a(((CraftWorld) player.getWorld()).getHandle(), new BlockPosition(0, 0, 0)));
+                ((CraftPlayer) player).getHandle().getInventory(),
+                ContainerLevelAccess.create(((CraftWorld) player.getWorld()).getHandle(), new BlockPos(0, 0, 0)));
         this.checkReachable = false;
-        setTitle(IChatBaseComponent.a(guiTitle));
+        setTitle(PaperAdventure.asVanilla(guiTitle));
     }
 
     @Override
-    public void l() {
-        super.l();
-        this.w.a(0);
+    public void createResult() {
+        super.createResult();
+        this.cost.set(0);
+
     }
 
     @Override
-    public void b(EntityHuman player) {}
+    public void removed(net.minecraft.world.entity.player.@NotNull Player player) {}
 
     @Override
-    protected void a(EntityHuman player, IInventory container) {}
+    protected void clearContainer(net.minecraft.world.entity.player.@NotNull Player player, @NotNull Container inventory) {}
 
     public int getContainerId() {
-        return this.j;
+        return this.containerId;
     }
 }

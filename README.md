@@ -1,14 +1,18 @@
-# AnvilGUI [![Build Status](https://ci.codemc.io/job/WesJD/job/AnvilGUI/badge/icon)](https://ci.codemc.io/job/WesJD/job/AnvilGUI/)
+# AnvilGUI
 Easily use anvil guis to get a user's input.
 
 This project was made since there is no way to prompt users with an anvil input with the Spigot / Bukkit API. It requires interaction with NMS and that is a pain in plugins where users have different versions of the server running.
 
+This fork aims to be compatible with WesJD/AnvilGUI as long as you only use public api methods.
+The main goal of this fork is to provide adventure support and to make it easier to update and understand the nms code by using the paperweight gradle plugin
+
 ## Requirements
-Java 8 and Bukkit / Spigot. Most server versions in the [Spigot Repository](https://hub.spigotmc.org/nexus/) are supported.
+Java 17 and a Paper Server (1.19+).
 
 ### My version isn't supported
 If you are a developer, submit a pull request adding a wrapper module for your version. Otherwise, please create an issue
 on the issues tab. 
+Note: We won't support versions older than 1.19. If you want to support older versions use the repository this was forked on: WesJD/AnvilGUI
 
 ## Usage
 
@@ -17,14 +21,14 @@ on the issues tab.
 AnvilGUI requires the usage of Maven or a Maven compatible build system. 
 ```xml
 <dependency>
-    <groupId>net.wesjd</groupId>
+    <groupId>eu.cafestube</groupId>
     <artifactId>anvilgui</artifactId>
-    <version>1.5.3-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 </dependency>
 
 <repository>
-    <id>codemc-snapshots</id>
-    <url>https://repo.codemc.io/repository/maven-snapshots/</url>
+    <id>cafestube-public-snapshots</id>
+    <url>https://repo.cafestu.be/repository/maven-public-snapshots/</url>
 </repository>
 ```
 
@@ -98,7 +102,7 @@ Useful for situations like password input to play.
 builder.preventClose();     
 ```                         
      
-#### `text(String)`
+#### `text(Component)`
 Takes a `String` that contains what the initial text in the renaming field should be set to.
 ```java                                           
 builder.text("What is the meaning of life?");     
@@ -140,7 +144,7 @@ builder.onRightInputClick(player -> {
 });        
 ```
 
-#### `title(String)`
+#### `title(Component)`
 Takes a `String` that will be used as the inventory title. Only displayed in Minecraft 1.14 and above.
 ```java                            
 builder.title("Enter your answer");
@@ -186,12 +190,7 @@ new AnvilGUI.Builder()
                                                                                                                                                                                                                                                                               
 
 ## Development 
-We use Maven to handle our dependencies. Run `mvn clean install` using Java 17 to build the project.
-
-### Spotless
-The project utilizes the [Spotless Maven Plugin](https://github.com/diffplug/spotless/tree/main/plugin-maven) to
-enforce style guidelines. You will not be able to build the project if your code does not meet the guidelines.
-To fix all code formatting issues, simply run `mvn spotless:apply`.
+We use Maven to handle our dependencies. Run `gradle build` using Java 17 to build the project.
 
 ## License
 This project is licensed under the [MIT License](LICENSE).
