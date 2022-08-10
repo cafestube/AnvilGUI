@@ -3,7 +3,7 @@ Easily use anvil guis to get a user's input.
 
 This project was made since there is no way to prompt users with an anvil input with the Spigot / Bukkit API. It requires interaction with NMS and that is a pain in plugins where users have different versions of the server running.
 
-This fork aims to be compatible with WesJD/AnvilGUI as long as you only use public api methods.
+**Note on the Fork**: This fork aims to be compatible with WesJD/AnvilGUI as long as you only use public api methods.
 The main goal of this fork is to provide adventure support and to make it easier to update and understand the nms code by using the paperweight gradle plugin
 
 ## Requirements
@@ -12,7 +12,7 @@ Java 17 and a Paper Server (1.19+).
 ### My version isn't supported
 If you are a developer, submit a pull request adding a wrapper module for your version. Otherwise, please create an issue
 on the issues tab. 
-Note: We won't support versions older than 1.19. If you want to support older versions use the repository this was forked on: WesJD/AnvilGUI
+**Note on the Fork**: We won't support versions older than 1.19. If you want to support older versions use the repository this was forked on: WesJD/AnvilGUI
 
 ## Usage
 
@@ -105,7 +105,7 @@ builder.preventClose();
 #### `text(Component)`
 Takes a `String` that contains what the initial text in the renaming field should be set to.
 ```java                                           
-builder.text("What is the meaning of life?");     
+builder.text(Component.text("What is the meaning of life?"));     
 ```  
 
 #### `itemLeft(ItemStack)`
@@ -147,7 +147,7 @@ builder.onRightInputClick(player -> {
 #### `title(Component)`
 Takes a `String` that will be used as the inventory title. Only displayed in Minecraft 1.14 and above.
 ```java                            
-builder.title("Enter your answer");
+builder.title(Component.text("Enter your answer"));
 ```                                
                  
 #### `plugin(Plugin)`
