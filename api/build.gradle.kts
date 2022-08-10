@@ -33,7 +33,8 @@ publishing {
             artifactId = "anvilgui"
             version = "${project.version}"
 
-            from(components["java"])
+            artifact(tasks["shadowJar"])
+            artifact(tasks["sourcesJar"])
         }
         repositories {
             maven {
