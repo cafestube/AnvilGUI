@@ -122,8 +122,7 @@ public class AnvilGUI {
      * @param plugin           A {@link org.bukkit.plugin.java.JavaPlugin} instance
      * @param player           The {@link Player} to open the inventory for
      * @param inventoryTitle   What to have the text already set to
-     * @param itemText         The name of the item in the first slot of the anvilGui
-     * @param inputLeft        The material of the item in the first slot of the anvilGUI
+     * @param initialContents  The initial contents of the inventory
      * @param preventClose     Whether to prevent the inventory from closing
      * @param closeListener    A {@link Consumer} when the inventory closes
      * @param completeFunction A {@link BiFunction} that is called when the player clicks the {@link Slot#OUTPUT} slot
@@ -150,8 +149,7 @@ public class AnvilGUI {
      * @param plugin           A {@link org.bukkit.plugin.java.JavaPlugin} instance
      * @param player           The {@link Player} to open the inventory for
      * @param inventoryTitle   What to have the text already set to
-     * @param itemText         The name of the item in the first slot of the anvilGui
-     * @param inputLeft        The material of the item in the first slot of the anvilGUI
+     * @param initialContents  The initial contents of the inventory
      * @param preventClose     Whether to prevent the inventory from closing
      * @param closeListener    A {@link Consumer} when the inventory closes
      * @param completeFunction A {@link BiFunction} that is called when the player clicks the {@link Slot#OUTPUT} slot
