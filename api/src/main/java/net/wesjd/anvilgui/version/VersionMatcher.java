@@ -28,13 +28,14 @@ public class VersionMatcher {
                 .substring(1);
         try {
             return (VersionWrapper) Class.forName(getClass().getPackage().getName() + ".Wrapper" + serverVersion)
-                    .getDeclaredConstructor().newInstance();
-        } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException exception) {
-            throw new IllegalStateException(
-                    "Failed to instantiate version wrapper for version " + serverVersion, exception);
+                    .getDeclaredConstructor()
+                    .newInstance();
         } catch (ClassNotFoundException exception) {
             throw new IllegalStateException(
                     "AnvilGUI does not support server version \"" + serverVersion + "\"", exception);
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException(
+                    "Failed to instantiate version wrapper for version " + serverVersion, exception);
         }
     }
 }

@@ -18,12 +18,12 @@ on the issues tab.
 
 ### As a dependency
 
-AnvilGUI requires the usage of Maven or a Maven compatible build system. 
+AnvilGUI requires the usage of Maven or a Maven compatible build system.
 ```xml
 <dependency>
     <groupId>eu.cafestube</groupId>
     <artifactId>anvilgui</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.3-SNAPSHOT</version>
 </dependency>
 
 <repository>
@@ -32,7 +32,7 @@ AnvilGUI requires the usage of Maven or a Maven compatible build system.
 </repository>
 ```
 
-It is best to be a good citizen and relocate the dependency to within your namespace in order 
+It is best to be a good citizen and relocate the dependency to within your namespace in order
 to prevent conflicts with other plugins. Here is an example of how to relocate the dependency:
 ```xml
 <build>
@@ -62,7 +62,7 @@ to prevent conflicts with other plugins. Here is an example of how to relocate t
                                     <include>[YOUR_PLUGIN_PACKAGE].anvilgui</include>
                                 </includes>
                             </filter>
-                        </filters> 
+                        </filters>
                     </configuration>
                 </execution>
             </executions>
@@ -75,36 +75,75 @@ ensure that your `<filters>` section contains the example `<filter>` as seen abo
 
 ### In your plugin
 
-The `AnvilGUI.Builder` class is how you build an AnvilGUI. 
+The `AnvilGUI.Builder` class is how you build an AnvilGUI.
 The following methods allow you to modify various parts of the displayed GUI. Javadocs are available [here](http://docs.wesjd.net/AnvilGUI/).
 
-#### `onClose(Consumer<Player>)` 
-Takes a `Consumer<Player>` argument that is called when a player closes the anvil gui.
-```java                                             
-builder.onClose(player -> {                         
-    player.sendMessage("You closed the inventory.");
-});                                                 
-``` 
+#### `onClose(Consumer<StateSnapshot>)`
+Takes a `Consumer<StateSnapshot>` argument that is called when a player closes the anvil gui.
+```java
+builder.onClose(stateSnapshot -> {
+    stateSnapshot.getPlayer().sendMessage("You closed the inventory.");
+});
+```
 
-#### `onComplete(Function<AnvilGUI.Completion, AnvilGUI.Response>)`
-Takes a `Function<AnvilGUI.Completion, List<AnvilGUI.ResponseAction>>` as argument. The function is called when a player clicks the output slot.
-The supplied `Completion` contains the player who clicked, the inputted text, the left item, right item and the output. You must return a `List<AnvilGUI.ResponseAction>`,
-which could include:
+#### `onClick(BiFunction<Integer, AnvilGUI.StateSnapshot, AnvilGUI.ResponseAction>)`
+Takes a `BiFunction` with the slot that was clicked and a snapshot of the current gui state.
+The function is called when a player clicks any slots in the inventory.
+You must return a `List<AnvilGUI.ResponseAction>`, which could include:
 - Closing the inventory (`AnvilGUI.ResponseAction.close()`)
 - Replacing the input text (`AnvilGUI.ResponseAction.replaceInputText(String)`)
 - Opening another inventory (`AnvilGUI.ResponseAction.openInventory(Inventory)`)
 - Running generic code (`AnvilGUI.ResponseAction.run(Runnable)`)
+- Nothing! (`Collections.emptyList()`)
 
 The list of actions are ran in the order they are supplied.
-```java                                                
-builder.onComplete((completion) -> {                 
-    if(completion.getText().equalsIgnoreCase("you")) {
-        completion.getPlayer().sendMessage("You have magical powers!");
-        return Arrays.asList(AnvilGUI.ResponseAction.close());              
-    } else {                                           
-        return Arrays.asList(AnvilGUI.ResponseAction.replaceInputText("Try again"));   
-    }                                                  
-});                                                    
+```java
+builder.onClick((slot, stateSnapshot) -> {
+    if (slot != AnvilGUI.Slot.OUTPUT) {
+        return Collections.emptyList();
+    }
+
+    if (stateSnapshot.getText().equalsIgnoreCase("you")) {
+        stateSnapshot.getPlayer().sendMessage("You have magical powers!");
+        return Arrays.asList(
+            AnvilGUI.ResponseAction.close(),
+            AnvilGUI.ResponseAction.run(() -> myCode(stateSnapshot.getPlayer()))
+        );
+    } else {
+        return Arrays.asList(AnvilGUI.ResponseAction.replaceInputText("Try again"));
+    }
+});
+```
+
+#### `onClickAsync(ClickHandler)`
+Takes a `ClickHandler`, a shorthand for `BiFunction<Integer, AnvilGui.StateSnapshot, CompletableFuture<AnvilGUI.ResponseAction>>`,
+that behaves exactly like `onClick()` with the difference that it returns a `CompletableFuture` and therefore allows for
+asynchronous calculation of the `ResponseAction`s.
+
+```java
+builder.onClickAsync((slot, stateSnapshot) -> CompletedFuture.supplyAsync(() -> {
+    // this code is now running async
+    if (slot != AnvilGUI.Slot.OUTPUT) {
+        return Collections.emptyList();
+    }
+
+    if (database.isMagical(stateSnapshot.getText())) {
+        // the `ResponseAction`s will run on the main server thread
+        return Arrays.asList(
+            AnvilGUI.ResponseAction.close(),
+            AnvilGUI.ResponseAction.run(() -> myCode(stateSnapshot.getPlayer()))
+        );
+    } else {
+        return Arrays.asList(AnvilGUI.ResponseAction.replaceInputText("Try again"));
+    }
+}));
+```
+
+#### `allowConcurrentClickHandlerExecution()`
+Tells the AnvilGUI to disable the mechanism that is put into place to prevent concurrent execution of the
+click handler set by `onClickAsync(ClickHandler)`.
+```java
+builder.allowConcurrentClickHandlerExecution();
 ```
 
 #### `interactableSlots(int... slots)`
@@ -113,7 +152,7 @@ This allows or denies users to take / input items in the anvil slots that are pr
 builder.interactableSlots(Slot.INPUT_LEFT, Slot.INPUT_RIGHT);
 ```
 
-#### `preventClose()` 
+#### `preventClose()`
 Tells the AnvilGUI to prevent the user from pressing escape to close the inventory.
 Useful for situations like password input to play.                                      
 ```java                     
@@ -125,88 +164,92 @@ Takes a `String` that contains what the initial text in the renaming field shoul
 ```java                                           
 builder.text(Component.text("What is the meaning of life?"));     
 ```  
+If `itemLeft` is provided, then the display name is set to the provided text. If no `itemLeft`
+is set, then a piece of paper will be used.
+```java
+builder.text("What is the meaning of life?");
+```
 
 #### `itemLeft(ItemStack)`
 Takes a custom `ItemStack` to be placed in the left input slot.
-```java                                              
+```java
 ItemStack stack = new ItemStack(Material.IRON_SWORD);
-ItemMeta meta = stack.getItemMeta();                 
-meta.setLore(Arrays.asList("Sharp iron sword"));             
-stack.setItemMeta(meta); 
-builder.itemLeft(stack);        
-```         
-
-#### `onLeftInputClick(Consumer<Player>)`
-Takes a `Consumer<Player>` to be executed when the item in the left input slot is clicked.
-```java                                              
-builder.onLeftInputClick(player -> {
-    player.sendMessage("You clicked the left input slot!");
-});        
-```      
+ItemMeta meta = stack.getItemMeta();
+meta.setLore(Arrays.asList("Sharp iron sword"));
+stack.setItemMeta(meta);
+builder.itemLeft(stack);
+```
 
 #### `itemRight(ItemStack)`
 Takes a custom `ItemStack` to be placed in the right input slot.
-```java                                              
+```java
 ItemStack stack = new ItemStack(Material.IRON_INGOT);
-ItemMeta meta = stack.getItemMeta();                 
-meta.setLore(Arrays.asList("A piece of metal"));             
-stack.setItemMeta(meta); 
-builder.itemRight(stack);        
-```         
-
-#### `onRightInputClick(Consumer<Player>)`
-Takes a `Consumer<Player>` to be executed when the item in the right input slot is clicked.
-```java                                              
-builder.onRightInputClick(player -> {
-    player.sendMessage("You clicked the right input slot!");
-});        
+ItemMeta meta = stack.getItemMeta();
+meta.setLore(Arrays.asList("A piece of metal"));
+stack.setItemMeta(meta);
+builder.itemRight(stack);
 ```
 
 #### `title(Component)`
-Takes a `String` that will be used as the inventory title. Only displayed in Minecraft 1.14 and above.
-```java                            
+Takes a `Component` that will be used as the inventory title. Only displayed in Minecraft 1.14 and above.
+```java
 builder.title(Component.text("Enter your answer"));
-```                                
-                 
+```
+
+#### `jsonTitle(String)`
+Takes a `String` which contains rich text components serialized as JSON.
+Useful for settings titles with hex color codes or Adventure Component interop.
+Only displayed in Minecraft 1.14 and above.
+```java
+builder.jsonTitle("{\"text\":\"Enter your answer\",\"color\":\"green\"}")
+```
+
 #### `plugin(Plugin)`
 Takes the `Plugin` object that is making this anvil gui. It is needed to register listeners.
-```java                                         
-builder.plugin(pluginInstance);                 
-```                            
+```java
+builder.plugin(pluginInstance);
+```
+
+#### `mainThreadExecutor(Executor)`
+Takes an `Executor` that must execute on the main server thread.
+If the main server thread is not accessible via the Bukkit scheduler, like on Folia servers, it can be swapped for a
+Folia aware executor.
+```java
+builder.mainThreadExecutor(executor);
+```
 
 #### `open(Player)`
 Takes a `Player` that the anvil gui should be opened for. This method can be called multiple times without needing to create
-a new `AnvilGUI.Builder` object.                                                                                            
-```java              
+a new `AnvilGUI.Builder` object.
+```java
 builder.open(player);
-```                  
+```
 
-### A full example combining all methods
+### A Common Use Case Example
 ```java
 new AnvilGUI.Builder()
-    .onClose(player -> {                                               //called when the inventory is closing
-        player.sendMessage("You closed the inventory.");
+    .onClose(stateSnapshot -> {
+        stateSnapshot.getPlayer().sendMessage("You closed the inventory.");
     })
-    .onComplete((completion) -> {                                    //called when the inventory output slot is clicked
-        if(completion.getText().equalsIgnoreCase("you")) {
-            completion.getPlayer().sendMessage("You have magical powers!");
+    .onClick((slot, stateSnapshot) -> { // Either use sync or async variant, not both
+        if(slot != AnvilGUI.Slot.OUTPUT) {
+            return Collections.emptyList();
+        }
+
+        if(stateSnapshot.getText().equalsIgnoreCase("you")) {
+            stateSnapshot.getPlayer().sendMessage("You have magical powers!");
             return Arrays.asList(AnvilGUI.ResponseAction.close());
         } else {
             return Arrays.asList(AnvilGUI.ResponseAction.replaceInputText("Try again"));
         }
     })
     .preventClose()                                                    //prevents the inventory from being closed
-    .interactableSlots(Slot.INPUT_RIGHT)                               //allow player to take out and replace the right input item
     .text("What is the meaning of life?")                              //sets the text the GUI should start with
-    .itemLeft(new ItemStack(Material.IRON_SWORD))                      //use a custom item for the first slot
-    .itemRight(new ItemStack(Material.IRON_SWORD))                     //use a custom item for the second slot
-    .onLeftInputClick(player -> player.sendMessage("first sword"))     //called when the left input slot is clicked
-    .onRightInputClick(player -> player.sendMessage("second sword"))   //called when the right input slot is clicked
     .title("Enter your answer.")                                       //set the title of the GUI (only works in 1.14+)
     .plugin(myPluginInstance)                                          //set the plugin instance
     .open(myPlayer);                                                   //opens the GUI for the player provided
 ```
-                                                                                                                                                                                                                                                                              
+
 
 ## Development 
 We use Maven to handle our dependencies. Run `gradle build` using Java 17 to build the project.
