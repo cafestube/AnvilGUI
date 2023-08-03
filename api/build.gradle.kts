@@ -19,7 +19,7 @@ val versionSpecific = configurations.create("versionSpecific") {
     }
 }
 
-val versions = listOf("1_19_R1", "1_19_1_R1", "1_19_3_R2", "1_19_4_R3")
+val versions = listOf("1_19_R1", "1_19_1_R1", "1_19_3_R2", "1_19_4_R3", "1_20_R1")
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.19.3-R0.1-SNAPSHOT")

@@ -1,23 +1,26 @@
 package net.wesjd.anvilgui.version;
 
 
-import net.minecraft.core.BlockPosition;
-import net.minecraft.network.chat.IChatBaseComponent;
-import net.minecraft.network.protocol.game.PacketPlayOutCloseWindow;
-import net.minecraft.network.protocol.game.PacketPlayOutOpenWindow;
-import net.minecraft.server.level.EntityPlayer;
-import net.minecraft.world.IInventory;
-import net.minecraft.world.entity.player.EntityHuman;
-import net.minecraft.world.inventory.Container;
-import net.minecraft.world.inventory.ContainerAccess;
-import net.minecraft.world.inventory.ContainerAnvil;
-import net.minecraft.world.inventory.Containers;
+import io.papermc.paper.adventure.PaperAdventure;
+import net.kyori.adventure.text.Component;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
+import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.AnvilMenu;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.MenuType;
 import org.bukkit.craftbukkit.v1_20_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_20_R1.event.CraftEventFactory;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
+import org.jetbrains.annotations.NotNull;
 
+@SuppressWarnings("unused")
 public final class Wrapper1_20_R1 implements VersionWrapper {
     private int getRealNextContainerId(Player player) {
         return toNMS(player).nextContainerCounter();
@@ -29,7 +32,7 @@ public final class Wrapper1_20_R1 implements VersionWrapper {
      * @param player The player to be converted
      * @return the NMS EntityPlayer
      */
-    private EntityPlayer toNMS(Player player) {
+    private ServerPlayer toNMS(Player player) {
         return ((CraftPlayer) player).getHandle();
     }
 
@@ -40,27 +43,27 @@ public final class Wrapper1_20_R1 implements VersionWrapper {
 
     @Override
     public void handleInventoryCloseEvent(Player player) {
-        CraftEventFactory.handleInventoryCloseEvent(toNMS(player));
+        CraftEventFactory.handleInventoryCloseEvent(toNMS(player), InventoryCloseEvent.Reason.PLUGIN);
     }
 
     @Override
-    public void sendPacketOpenWindow(Player player, int containerId, Object inventoryTitle) {
-        toNMS(player).c.a(new PacketPlayOutOpenWindow(containerId, Containers.h, (IChatBaseComponent) inventoryTitle));
+    public void sendPacketOpenWindow(Player player, int containerId, Component inventoryTitle) {
+        toNMS(player).connection.send(new ClientboundOpenScreenPacket(containerId, MenuType.ANVIL, PaperAdventure.asVanilla(inventoryTitle)));
     }
 
     @Override
     public void sendPacketCloseWindow(Player player, int containerId) {
-        toNMS(player).c.a(new PacketPlayOutCloseWindow(containerId));
+        toNMS(player).connection.send(new ClientboundContainerClosePacket(containerId));
     }
 
     @Override
     public void setActiveContainerDefault(Player player) {
-        toNMS(player).bR = toNMS(player).bQ;
+        toNMS(player).containerMenu = toNMS(player).inventoryMenu;
     }
 
     @Override
     public void setActiveContainer(Player player, Object container) {
-        toNMS(player).bR = (Container) container;
+        toNMS(player).containerMenu = (AbstractContainerMenu) container;
     }
 
     @Override
@@ -68,53 +71,43 @@ public final class Wrapper1_20_R1 implements VersionWrapper {
 
     @Override
     public void addActiveContainerSlotListener(Object container, Player player) {
-        toNMS(player).a((Container) container);
+        toNMS(player).initMenu((AbstractContainerMenu) container);
     }
 
     @Override
     public Inventory toBukkitInventory(Object container) {
-        return ((Container) container).getBukkitView().getTopInventory();
+        return ((AbstractContainerMenu) container).getBukkitView().getTopInventory();
     }
 
     @Override
-    public Object newContainerAnvil(Player player, Object title) {
-        return new AnvilContainer(player, getRealNextContainerId(player), (IChatBaseComponent) title);
+    public Object newContainerAnvil(Player player, Component title) {
+        return new AnvilContainer(player, getRealNextContainerId(player), title);
     }
 
-    @Override
-    public Object literalChatComponent(String content) {
-        return IChatBaseComponent.b(content);
-    }
-
-    @Override
-    public Object jsonChatComponent(String json) {
-        return IChatBaseComponent.ChatSerializer.a(json);
-    }
-
-    private static class AnvilContainer extends ContainerAnvil {
-        public AnvilContainer(Player player, int containerId, IChatBaseComponent guiTitle) {
+    private static class AnvilContainer extends AnvilMenu {
+        public AnvilContainer(Player player, int containerId, Component guiTitle) {
             super(
                     containerId,
-                    ((CraftPlayer) player).getHandle().fN(),
-                    ContainerAccess.a(((CraftWorld) player.getWorld()).getHandle(), new BlockPosition(0, 0, 0)));
+                    ((CraftPlayer) player).getHandle().getInventory(),
+                    ContainerLevelAccess.create(((CraftWorld) player.getWorld()).getHandle(), new BlockPos(0, 0, 0)));
             this.checkReachable = false;
-            setTitle(guiTitle);
+            setTitle(PaperAdventure.asVanilla(guiTitle));
         }
 
         @Override
-        public void m() {
-            super.m();
-            this.w.a(0);
+        public void createResult() {
+            super.createResult();
+            this.cost.set(0);
         }
 
         @Override
-        public void b(EntityHuman player) {}
+        public void removed(net.minecraft.world.entity.player.@NotNull Player player) {}
 
         @Override
-        protected void a(EntityHuman player, IInventory container) {}
+        protected void clearContainer(net.minecraft.world.entity.player.@NotNull Player player, @NotNull Container inventory) {}
 
         public int getContainerId() {
-            return this.j;
+            return this.containerId;
         }
     }
 }

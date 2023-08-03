@@ -20,6 +20,7 @@ import java.util.logging.Level;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.wesjd.anvilgui.version.VersionMatcher;
 import net.wesjd.anvilgui.version.VersionWrapper;
+import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -78,7 +79,7 @@ public class AnvilGUI {
     /**
      * The title of the anvil inventory
      */
-    private Component inventoryTitle;
+    private Component titleComponent;
 
     /**
      * The initial contents of the inventory
@@ -197,7 +198,7 @@ public class AnvilGUI {
 
         Bukkit.getPluginManager().registerEvents(listener, plugin);
 
-        final Object container = WRAPPER.newContainerAnvil(player, inventoryTitle);
+        final Object container = WRAPPER.newContainerAnvil(player, titleComponent);
 
         inventory = WRAPPER.toBukkitInventory(container);
         // We need to use setItem instead of setContents because a Minecraft ContainerAnvil
@@ -209,7 +210,7 @@ public class AnvilGUI {
         }
 
         containerId = WRAPPER.getNextContainerId(player, container);
-        WRAPPER.sendPacketOpenWindow(player, containerId, inventoryTitle);
+        WRAPPER.sendPacketOpenWindow(player, containerId, titleComponent);
         WRAPPER.setActiveContainer(player, container);
         WRAPPER.setActiveContainerId(container, containerId);
         WRAPPER.addActiveContainerSlotListener(container, player);
@@ -524,7 +525,7 @@ public class AnvilGUI {
          */
         public Builder title(String title) {
             Preconditions.checkNotNull(title, "title cannot be null");
-            this.title = LEGACY_SERIALIZER.deserialize(title);
+            this.titleComponent = LEGACY_SERIALIZER.deserialize(title);
             return this;
         }
 
@@ -550,7 +551,7 @@ public class AnvilGUI {
          */
         public Builder title(Component title) {
             Preconditions.checkNotNull(title, "title cannot be null");
-            this.title = title;
+            this.titleComponent = title;
             return this;
         }
 
@@ -659,6 +660,10 @@ public class AnvilGUI {
          * @throws IllegalStateException when the slots {@link Slot#INPUT_LEFT} and {@link Slot#OUTPUT} are <code>null</code>
          */
         static ResponseAction replaceInputText(String text) {
+            return replaceInputText(LEGACY_SERIALIZER.deserialize(text));
+        }
+
+        static ResponseAction replaceInputText(Component text) {
             Validate.notNull(text, "text cannot be null");
             return (anvilgui, player) -> {
                 ItemStack item = anvilgui.getInventory().getItem(Slot.OUTPUT);
@@ -673,7 +678,7 @@ public class AnvilGUI {
 
                 final ItemStack cloned = item.clone();
                 final ItemMeta meta = cloned.getItemMeta();
-                meta.setDisplayName(text);
+                meta.displayName(text);
                 cloned.setItemMeta(meta);
                 anvilgui.getInventory().setItem(Slot.INPUT_LEFT, cloned);
             };
