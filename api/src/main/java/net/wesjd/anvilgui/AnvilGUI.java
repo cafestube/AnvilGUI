@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 
 import com.google.common.base.Preconditions;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -263,11 +264,27 @@ public class AnvilGUI {
      */
     public void setTitle(Component title, boolean preserveRenameText) {
         String renameText = container.getRenameText();
+
+        this.titleComponent = title;
+
         WRAPPER.sendPacketOpenWindow(player, containerId, title);
         if (preserveRenameText) {
             // The renameText field is marked as @Nullable in newer versions
             container.setRenameText(renameText == null ? "" : renameText);
         }
+    }
+
+    /**
+     * Updates the title of the AnvilGUI to the new one.
+     *
+     * @param json The json used to parse into a rich chat component
+     * @param preserveRenameText Whether to preserve the entered rename text
+     * @throws IllegalArgumentException when json is null
+     * @see Builder#jsonTitle(String)
+     */
+    public void setJsonTitle(String json, boolean preserveRenameText) {
+        Validate.notNull(json, "json cannot be null");
+        setTitle(GsonComponentSerializer.gson().deserialize(json), preserveRenameText);
     }
 
     /**
@@ -580,6 +597,23 @@ public class AnvilGUI {
         }
 
         /**
+         * Sets the AnvilGUI title that is to be displayed to the user.
+         * <br>
+         * The provided json will be parsed into rich chat components.
+         *
+         * @param json The title that is to be displayed to the user
+         * @return The {@link Builder} instance
+         * @throws IllegalArgumentException if the title is null
+         * @see net.md_5.bungee.chat.ComponentSerializer#toString(BaseComponent)
+         */
+        public Builder jsonTitle(String json) {
+            Validate.notNull(json, "json cannot be null");
+            this.titleComponent = GsonComponentSerializer.gson().deserialize(json);
+            return this;
+        }
+
+
+        /**
          * Sets the inital item-text that is displayed to the user
          *
          * @param text The initial name of the item in the anvil
@@ -746,6 +780,35 @@ public class AnvilGUI {
             Validate.notNull(title, "literalTitle cannot be null");
             return (anvilGUI, player) -> anvilGUI.setTitle(title, preserveRenameText);
         }
+
+        /**
+         * Updates the title of the AnvilGUI to the new one.
+         *
+         * @param literalTitle The title to use as literal text
+         * @param preserveRenameText Whether to preserve the entered rename text
+         * @throws IllegalArgumentException when literalTitle is null
+         * @see Builder#title(String)
+         */
+        static ResponseAction updateTitle(String literalTitle, boolean preserveRenameText) {
+            Validate.notNull(literalTitle, "literalTitle cannot be null");
+            return (anvilGUI, player) -> anvilGUI.setTitle(literalTitle, preserveRenameText);
+        }
+
+
+        /**
+         * Updates the title of the AnvilGUI to the new one.
+         *
+         * @param json The json used to parse into a rich chat component
+         * @param preserveRenameText Whether to preserve the entered rename text
+         * @throws IllegalArgumentException when json is null
+         * @see Builder#jsonTitle(String)
+         */
+        static ResponseAction updateJsonTitle(String json, boolean preserveRenameText) {
+            Validate.notNull(json, "json cannot be null");
+            return (anvilGUI, player) -> anvilGUI.setJsonTitle(json, preserveRenameText);
+        }
+
+
 
         /**
          * Open another inventory
