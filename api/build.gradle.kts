@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "eu.cafestube"
-version = "1.0.4-SNAPSHOT"
+version = "1.0.5-SNAPSHOT"
 
 val versionSpecific = configurations.create("versionSpecific") {
     description = "Version Adapters to include in the JAR"
@@ -19,7 +19,7 @@ val versionSpecific = configurations.create("versionSpecific") {
     }
 }
 
-val versions = listOf("1_19_R1", "1_19_1_R1", "1_19_3_R2", "1_19_4_R3", "1_20_R1")
+val versions = listOf("1_19_R1", "1_19_1_R1", "1_19_3_R2", "1_19_4_R3", "1_20_R1", "1_20_2_R2", "1_20_3_R3")
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.19.3-R0.1-SNAPSHOT")

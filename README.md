@@ -23,7 +23,7 @@ AnvilGUI requires the usage of Maven or a Maven compatible build system.
 <dependency>
     <groupId>eu.cafestube</groupId>
     <artifactId>anvilgui</artifactId>
-    <version>1.0.4-SNAPSHOT</version>
+    <version>1.0.5-SNAPSHOT</version>
 </dependency>
 
 <repository>
