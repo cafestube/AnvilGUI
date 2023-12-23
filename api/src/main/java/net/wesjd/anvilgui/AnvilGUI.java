@@ -125,6 +125,11 @@ public class AnvilGUI {
 
 
     /**
+     * The actual container backing the Anvil GUI
+     */
+    private VersionWrapper.AnvilContainerWrapper container;
+
+    /**
      * Create an AnvilGUI
      *
      * @param plugin           A {@link org.bukkit.plugin.java.JavaPlugin} instance
@@ -193,14 +198,11 @@ public class AnvilGUI {
      * Opens the anvil GUI
      */
     private void openInventory() {
-        WRAPPER.handleInventoryCloseEvent(player);
-        WRAPPER.setActiveContainerDefault(player);
-
         Bukkit.getPluginManager().registerEvents(listener, plugin);
 
-        final Object container = WRAPPER.newContainerAnvil(player, titleComponent);
+        container = WRAPPER.newContainerAnvil(player, titleComponent);
 
-        inventory = WRAPPER.toBukkitInventory(container);
+        inventory = container.getBukkitInventory();
         // We need to use setItem instead of setContents because a Minecraft ContainerAnvil
         // contains two separate inventories: the result inventory and the ingredients inventory.
         // The setContents method only updates the ingredients inventory unfortunately,
@@ -210,6 +212,7 @@ public class AnvilGUI {
         }
 
         containerId = WRAPPER.getNextContainerId(player, container);
+        WRAPPER.handleInventoryCloseEvent(player);
         WRAPPER.sendPacketOpenWindow(player, containerId, titleComponent);
         WRAPPER.setActiveContainer(player, container);
         WRAPPER.setActiveContainerId(container, containerId);
@@ -251,6 +254,35 @@ public class AnvilGUI {
     }
 
     /**
+     * Updates the title of the AnvilGUI to the new one.
+     *
+     * @param title The title to use
+     * @param preserveRenameText Whether to preserve the entered rename text
+     * @throws IllegalArgumentException when title is null
+     * @see Builder#title(Component)
+     */
+    public void setTitle(Component title, boolean preserveRenameText) {
+        String renameText = container.getRenameText();
+        WRAPPER.sendPacketOpenWindow(player, containerId, title);
+        if (preserveRenameText) {
+            // The renameText field is marked as @Nullable in newer versions
+            container.setRenameText(renameText == null ? "" : renameText);
+        }
+    }
+
+    /**
+     * Updates the title of the AnvilGUI to the new one.
+     *
+     * @param title The title to use
+     * @param preserveRenameText Whether to preserve the entered rename text
+     * @throws IllegalArgumentException when title is null
+     * @see Builder#title(String)
+     */
+    public void setTitle(String title, boolean preserveRenameText) {
+        setTitle(LEGACY_SERIALIZER.deserialize(title), preserveRenameText);
+    }
+
+    /**
      * Returns the Bukkit inventory for this anvil gui
      *
      * @return the {@link Inventory} for this anvil gui
@@ -277,18 +309,36 @@ public class AnvilGUI {
                 return;
             }
 
+            final int rawSlot = event.getRawSlot();
+            // ignore items dropped outside the window
+            if (rawSlot == -999) return;
+
             final Player clicker = (Player) event.getWhoClicked();
-            // prevent players from merging items from the anvil inventory
             final Inventory clickedInventory = event.getClickedInventory();
-            if (clickedInventory != null
-                    && clickedInventory.equals(clicker.getInventory())
-                    && event.getClick().equals(ClickType.DOUBLE_CLICK)) {
-                event.setCancelled(true);
-                return;
+
+            if (clickedInventory != null) {
+                if (clickedInventory.equals(clicker.getInventory())) {
+                    // prevent players from merging items from the anvil inventory
+                    if (event.getClick().equals(ClickType.DOUBLE_CLICK)) {
+                        event.setCancelled(true);
+                        return;
+                    }
+                    // prevent shift moving items from players inv to the anvil inventory
+                    if (event.isShiftClick()) {
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+                // prevent players from swapping items in the anvil gui
+                if ((event.getCursor() != null && event.getCursor().getType() != Material.AIR)
+                        && !interactableSlots.contains(rawSlot)
+                        && event.getClickedInventory().equals(inventory)) {
+                    event.setCancelled(true);
+                    return;
+                }
             }
 
-            final int rawSlot = event.getRawSlot();
-            if (rawSlot < 3 || event.getAction().equals(InventoryAction.MOVE_TO_OTHER_INVENTORY)) {
+            if (rawSlot < 3 && rawSlot >= 0 || event.getAction().equals(InventoryAction.MOVE_TO_OTHER_INVENTORY)) {
                 event.setCancelled(!interactableSlots.contains(rawSlot));
                 if (clickHandlerRunning && !concurrentClickHandlerExecution) {
                     // A click handler is running, don't launch another one
@@ -682,6 +732,19 @@ public class AnvilGUI {
                 cloned.setItemMeta(meta);
                 anvilgui.getInventory().setItem(Slot.INPUT_LEFT, cloned);
             };
+        }
+
+        /**
+         * Updates the title of the AnvilGUI to the new one.
+         *
+         * @param title The title to use as literal text
+         * @param preserveRenameText Whether to preserve the entered rename text
+         * @throws IllegalArgumentException when title is null
+         * @see Builder#title(String)
+         */
+        static ResponseAction updateTitle(Component title, boolean preserveRenameText) {
+            Validate.notNull(title, "literalTitle cannot be null");
+            return (anvilGUI, player) -> anvilGUI.setTitle(title, preserveRenameText);
         }
 
         /**

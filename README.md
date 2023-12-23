@@ -23,7 +23,7 @@ AnvilGUI requires the usage of Maven or a Maven compatible build system.
 <dependency>
     <groupId>eu.cafestube</groupId>
     <artifactId>anvilgui</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.0.4-SNAPSHOT</version>
 </dependency>
 
 <repository>
@@ -59,7 +59,7 @@ to prevent conflicts with other plugins. Here is an example of how to relocate t
                                 <artifact>*:*</artifact>
                                 <excludeDefaults>false</excludeDefaults>
                                 <includes>
-                                    <include>[YOUR_PLUGIN_PACKAGE].anvilgui</include>
+                                    <include>net/wesjd/anvilgui/**</include>
                                 </includes>
                             </filter>
                         </filters>
@@ -92,6 +92,7 @@ The function is called when a player clicks any slots in the inventory.
 You must return a `List<AnvilGUI.ResponseAction>`, which could include:
 - Closing the inventory (`AnvilGUI.ResponseAction.close()`)
 - Replacing the input text (`AnvilGUI.ResponseAction.replaceInputText(String)`)
+- Updating the title of the inventory (`AnvilGUI.ResponseAction.updateTitle(String, boolean)`)
 - Opening another inventory (`AnvilGUI.ResponseAction.openInventory(Inventory)`)
 - Running generic code (`AnvilGUI.ResponseAction.run(Runnable)`)
 - Nothing! (`Collections.emptyList()`)

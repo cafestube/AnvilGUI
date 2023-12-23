@@ -8,10 +8,7 @@ import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.AnvilMenu;
-import net.minecraft.world.inventory.ContainerLevelAccess;
-import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.*;
 import net.wesjd.anvilgui.version.special.AnvilContainer1_19_1_R1;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_19_R1.CraftWorld;
@@ -42,7 +39,7 @@ public final class Wrapper1_19_R1 implements VersionWrapper {
     }
 
     @Override
-    public int getNextContainerId(Player player, Object container) {
+    public int getNextContainerId(Player player, AnvilContainerWrapper container) {
         if (IS_ONE_NINETEEN_ONE) {
             return ((AnvilContainer1_19_1_R1) container).getContainerId();
         }
@@ -52,6 +49,7 @@ public final class Wrapper1_19_R1 implements VersionWrapper {
     @Override
     public void handleInventoryCloseEvent(Player player) {
         CraftEventFactory.handleInventoryCloseEvent(toNMS(player), InventoryCloseEvent.Reason.PLUGIN);
+        toNMS(player).doCloseContainer();
     }
 
     @Override
@@ -70,32 +68,27 @@ public final class Wrapper1_19_R1 implements VersionWrapper {
     }
 
     @Override
-    public void setActiveContainer(Player player, Object container) {
+    public void setActiveContainer(Player player, AnvilContainerWrapper container) {
         toNMS(player).containerMenu = (AbstractContainerMenu) container;
     }
 
     @Override
-    public void setActiveContainerId(Object container, int containerId) {}
+    public void setActiveContainerId(AnvilContainerWrapper container, int containerId) {}
 
     @Override
-    public void addActiveContainerSlotListener(Object container, Player player) {
+    public void addActiveContainerSlotListener(AnvilContainerWrapper container, Player player) {
         toNMS(player).initMenu((AbstractContainerMenu) container);
     }
 
     @Override
-    public Inventory toBukkitInventory(Object container) {
-        return ((AbstractContainerMenu) container).getBukkitView().getTopInventory();
-    }
-
-    @Override
-    public Object newContainerAnvil(Player player, Component title) {
+    public AnvilContainerWrapper newContainerAnvil(Player player, Component title) {
         if (IS_ONE_NINETEEN_ONE) {
             return new AnvilContainer1_19_1_R1(player, getRealNextContainerId(player), title);
         }
         return new AnvilContainer(player, getRealNextContainerId(player), title);
     }
 
-    private static class AnvilContainer extends AnvilMenu {
+    private static class AnvilContainer extends AnvilMenu implements AnvilContainerWrapper {
         public AnvilContainer(Player player, int containerId, Component guiTitle) {
             super(
                     containerId,
@@ -107,9 +100,17 @@ public final class Wrapper1_19_R1 implements VersionWrapper {
 
         @Override
         public void createResult() {
-            super.createResult();
+            // If the output is empty copy the left input into the output
+            Slot output = this.getSlot(2);
+            if (!output.hasItem()) {
+                output.set(this.getSlot(0).getItem().copy());
+            }
+
             this.cost.set(0);
 
+            // Sync to the client
+            this.sendAllDataToRemote();
+            this.broadcastChanges();
         }
 
         @Override
@@ -120,6 +121,25 @@ public final class Wrapper1_19_R1 implements VersionWrapper {
 
         public int getContainerId() {
             return this.containerId;
+        }
+
+        @Override
+        public String getRenameText() {
+            return this.itemName;
+        }
+
+        @Override
+        public void setRenameText(String text) {
+            // If an item is present in the left input slot change its hover name to the literal text.
+            Slot inputLeft = this.getSlot(0);
+            if (inputLeft.hasItem()) {
+                inputLeft.getItem().setHoverName(net.minecraft.network.chat.Component.literal(text));
+            }
+        }
+
+        @Override
+        public Inventory getBukkitInventory() {
+            return getBukkitView().getTopInventory();
         }
     }
 }

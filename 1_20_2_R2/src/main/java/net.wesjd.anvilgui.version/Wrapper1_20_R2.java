@@ -9,15 +9,16 @@ import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.*;
-import org.bukkit.craftbukkit.v1_19_R3.CraftWorld;
-import org.bukkit.craftbukkit.v1_19_R3.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_19_R3.event.CraftEventFactory;
+import org.bukkit.craftbukkit.v1_20_R2.CraftWorld;
+import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R2.event.CraftEventFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
-public final class Wrapper1_19_R3 implements VersionWrapper {
+@SuppressWarnings("unused")
+public final class Wrapper1_20_R2 implements VersionWrapper {
     private int getRealNextContainerId(Player player) {
         return toNMS(player).nextContainerCounter();
     }
@@ -76,7 +77,7 @@ public final class Wrapper1_19_R3 implements VersionWrapper {
         return new AnvilContainer(player, getRealNextContainerId(player), title);
     }
 
-    private static class AnvilContainer extends AnvilMenu implements AnvilContainerWrapper {
+    private static class AnvilContainer extends AnvilMenu implements AnvilContainerWrapper  {
         public AnvilContainer(Player player, int containerId, Component guiTitle) {
             super(
                     containerId,
