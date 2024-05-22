@@ -4,7 +4,7 @@ buildscript {
         maven("https://repo.papermc.io/repository/maven-public/")
     }
     dependencies {
-        classpath("io.papermc.paperweight.userdev:io.papermc.paperweight.userdev.gradle.plugin:1.3.8")
+        classpath("io.papermc.paperweight.userdev:io.papermc.paperweight.userdev.gradle.plugin:1.7.1")
     }
 }
 
@@ -19,3 +19,4 @@ include(":1_19_4_R3")
 include(":1_20_R1")
 include(":1_20_2_R2")
 include(":1_20_3_R3")
+include(":1_20_6_R4")
