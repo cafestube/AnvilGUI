@@ -1,6 +1,5 @@
 package net.wesjd.anvilgui.version;
 
-
 import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.Component;
 import net.minecraft.core.BlockPos;
