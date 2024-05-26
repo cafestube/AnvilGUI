@@ -15,11 +15,22 @@ val versionSpecific = configurations.create("versionSpecific") {
     isCanBeResolved = true
     shouldResolveConsistentlyWith(configurations["runtimeClasspath"])
     attributes {
+        attribute(Obfuscation.OBFUSCATION_ATTRIBUTE, objects.named(Obfuscation.NONE))
+    }
+}
+
+val versionSpecificReobf = configurations.create("versionSpecificReobf") {
+    description = "Version Adapters to include in the JAR"
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    shouldResolveConsistentlyWith(configurations["runtimeClasspath"])
+    attributes {
         attribute(Obfuscation.OBFUSCATION_ATTRIBUTE, objects.named(Obfuscation.OBFUSCATED))
     }
 }
 
-val versions = listOf("1_19_R1", "1_19_1_R1", "1_19_3_R2", "1_19_4_R3", "1_20_R1", "1_20_2_R2", "1_20_3_R3", "1_20_6_R4")
+val reobfVersions = listOf("1_19_R1", "1_19_1_R1", "1_19_3_R2", "1_19_4_R3", "1_20_R1", "1_20_2_R2", "1_20_3_R3")
+val versions = listOf("1_20_6_R4")
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.19.3-R0.1-SNAPSHOT")
@@ -27,12 +38,17 @@ dependencies {
     versions.forEach {
         versionSpecific(project(":$it"))
     }
+    reobfVersions.forEach {
+        versionSpecificReobf(project(":$it"))
+    }
 }
 
 tasks.named<ShadowJar>("shadowJar") {
-    dependsOn(versions.map { project.project(":$it") }.map { it.tasks.named("build") })
+    dependsOn(versions.map { project.project(":$it") }.map { it.tasks.named("build") } +
+            reobfVersions.map { project.project(":$it") }.map { it.tasks.named("build") })
+
     from(Callable {
-        versionSpecific.resolve()
+        (versionSpecific.resolve() + versionSpecificReobf.resolve())
             .map { f ->
                 zipTree(f).matching {
                     exclude("META-INF/")
