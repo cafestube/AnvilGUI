@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "eu.cafestube"
-version = "1.0.6-SNAPSHOT"
+version = "1.0.7-SNAPSHOT"
 
 val versionSpecific = configurations.create("versionSpecific") {
     description = "Version Adapters to include in the JAR"
@@ -29,12 +29,17 @@ val versionSpecificReobf = configurations.create("versionSpecificReobf") {
     }
 }
 
-val reobfVersions = listOf("1_19_R1", "1_19_1_R1", "1_19_3_R2", "1_19_4_R3", "1_20_R1", "1_20_2_R2", "1_20_3_R3")
-val versions = listOf("1_20_6_R4")
+val reobfVersions = listOf("1_19_R1", "1_19_1_R1", "1_19_3_R2", "1_19_4_R3", "1_20_R1")
+val versions = listOf("1_20_6_R4", "1_21_R1")
+
+repositories {
+    maven(url = "https://repo.opencollab.dev/main/")
+}
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.19.3-R0.1-SNAPSHOT")
     implementation(project(":abstraction"))
+    compileOnly("org.geysermc.geyser:api:2.4.0-SNAPSHOT")
     versions.forEach {
         versionSpecific(project(":$it"))
     }

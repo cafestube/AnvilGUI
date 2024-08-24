@@ -1,23 +1,26 @@
 package net.wesjd.anvilgui.version;
 
 import io.papermc.paper.adventure.PaperAdventure;
+import io.papermc.paper.math.BlockPosition;
 import net.kyori.adventure.text.Component;
+import net.minecraft.advancements.critereon.EntityHurtPlayerTrigger;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.protocol.game.ClientboundContainerClosePacket;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
+import net.minecraft.network.protocol.game.ClientboundSetExperiencePacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.*;
-import org.bukkit.craftbukkit.v1_20_R2.CraftWorld;
-import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_20_R2.event.CraftEventFactory;
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
-@SuppressWarnings("unused")
-public final class Wrapper1_20_R2 implements VersionWrapper {
+public final class Wrapper1_21_R1 implements VersionWrapper {
     private int getRealNextContainerId(Player player) {
         return toNMS(player).nextContainerCounter();
     }
@@ -39,7 +42,7 @@ public final class Wrapper1_20_R2 implements VersionWrapper {
 
     @Override
     public void handleInventoryCloseEvent(Player player) {
-        CraftEventFactory.handleInventoryCloseEvent(toNMS(player), InventoryCloseEvent.Reason.PLUGIN);
+        CraftEventFactory.handleInventoryCloseEvent(toNMS(player));
         toNMS(player).doCloseContainer();
     }
 
@@ -51,6 +54,11 @@ public final class Wrapper1_20_R2 implements VersionWrapper {
     @Override
     public void sendPacketCloseWindow(Player player, int containerId) {
         toNMS(player).connection.send(new ClientboundContainerClosePacket(containerId));
+    }
+
+    @Override
+    public void sendPacketExperienceChange(Player player, int experienceLevel) {
+        toNMS(player).connection.send(new ClientboundSetExperiencePacket(0f, 0, experienceLevel));
     }
 
     @Override
@@ -76,7 +84,7 @@ public final class Wrapper1_20_R2 implements VersionWrapper {
         return new AnvilContainer(player, getRealNextContainerId(player), title);
     }
 
-    private static class AnvilContainer extends AnvilMenu implements AnvilContainerWrapper  {
+    private static class AnvilContainer extends AnvilMenu implements AnvilContainerWrapper {
         public AnvilContainer(Player player, int containerId, Component guiTitle) {
             super(
                     containerId,
@@ -121,13 +129,21 @@ public final class Wrapper1_20_R2 implements VersionWrapper {
             // If an item is present in the left input slot change its hover name to the literal text.
             Slot inputLeft = this.getSlot(0);
             if (inputLeft.hasItem()) {
-                inputLeft.getItem().setHoverName(net.minecraft.network.chat.Component.literal(text));
+                inputLeft
+                        .getItem()
+                        .set(
+                                DataComponents.CUSTOM_NAME,
+                                net.minecraft.network.chat.Component.literal(text)
+                        );
             }
         }
 
         @Override
         public Inventory getBukkitInventory() {
-            return getBukkitView().getTopInventory();
+            // NOTE: We need to call Container#getBukkitView() instead of ContainerAnvil#getBukkitView()
+            // because ContainerAnvil#getBukkitView() had an ABI breakage in the middle of the Minecraft 1.21
+            // development cycle for Spigot. For more info, see: https://github.com/WesJD/AnvilGUI/issues/342
+            return ((AbstractContainerMenu) this).getBukkitView().getTopInventory();
         }
     }
 }

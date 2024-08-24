@@ -32,6 +32,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+import org.geysermc.geyser.api.GeyserApi;
 
 /**
  * An anvil gui, used for gathering a user's input
@@ -89,7 +90,10 @@ public class AnvilGUI {
      * A state that decides where the anvil GUI is able to get closed by the user
      */
     private final boolean preventClose;
-
+    /**
+     * A state that decides whether compatibility with Geyser software is enabled
+     */
+    private final boolean geyserCompatibility;
     /**
      * A set of slot numbers that are permitted to be interacted with by the user. An interactable
      * slot is one that is able to be minipulated by the player, i.e. clicking and picking up an item,
@@ -132,15 +136,16 @@ public class AnvilGUI {
     /**
      * Create an AnvilGUI
      *
-     * @param plugin           A {@link org.bukkit.plugin.java.JavaPlugin} instance
-     * @param player           The {@link Player} to open the inventory for
-     * @param mainThreadExecutor An {@link Executor} that executes on the main server thread
-     * @param titleComponent   What to have the text already set to
-     * @param initialContents  The initial contents of the inventory
-     * @param preventClose     Whether to prevent the inventory from closing
-     * @param closeListener    A {@link Consumer} when the inventory closes
+     * @param plugin              A {@link org.bukkit.plugin.java.JavaPlugin} instance
+     * @param player              The {@link Player} to open the inventory for
+     * @param mainThreadExecutor  An {@link Executor} that executes on the main server thread
+     * @param titleComponent      What to have the text already set to
+     * @param initialContents     The initial contents of the inventory
+     * @param preventClose        Whether to prevent the inventory from closing
+     * @param geyserCompatibility Whether to enable compatibility with Geyser software
+     * @param closeListener       A {@link Consumer} when the inventory closes
      * @param concurrentClickHandlerExecution Flag to allow concurrent execution of the click handler
-     * @param clickHandler     A {@link ClickHandler} that is called when the player clicks a slot
+     * @param clickHandler        A {@link ClickHandler} that is called when the player clicks a slot
      */
     private AnvilGUI(
             Plugin plugin,
@@ -149,12 +154,13 @@ public class AnvilGUI {
             String titleComponent,
             ItemStack[] initialContents,
             boolean preventClose,
+            boolean geyserCompatibility,
             Set<Integer> interactableSlots,
             Consumer<StateSnapshot> closeListener,
             boolean concurrentClickHandlerExecution,
             ClickHandler clickHandler) {
         this(plugin, player, mainThreadExecutor, LEGACY_SERIALIZER.deserialize(titleComponent),
-                initialContents, preventClose, interactableSlots, closeListener, concurrentClickHandlerExecution, clickHandler);
+                initialContents, preventClose, geyserCompatibility, interactableSlots, closeListener, concurrentClickHandlerExecution, clickHandler);
     }
 
 
@@ -178,6 +184,7 @@ public class AnvilGUI {
             Component titleComponent,
             ItemStack[] initialContents,
             boolean preventClose,
+            boolean geyserCompatibility,
             Set<Integer> interactableSlots,
             Consumer<StateSnapshot> closeListener,
             boolean concurrentClickHandlerExecution,
@@ -188,6 +195,7 @@ public class AnvilGUI {
         this.titleComponent = titleComponent;
         this.initialContents = initialContents;
         this.preventClose = preventClose;
+        this.geyserCompatibility = geyserCompatibility;
         this.interactableSlots = Collections.unmodifiableSet(interactableSlots);
         this.closeListener = closeListener;
         this.concurrentClickHandlerExecution = concurrentClickHandlerExecution;
@@ -218,6 +226,16 @@ public class AnvilGUI {
         WRAPPER.setActiveContainerId(container, containerId);
         WRAPPER.addActiveContainerSlotListener(container, player);
 
+        if (geyserCompatibility
+                && plugin.getServer().getPluginManager().getPlugin("Geyser-Spigot") != null
+                && plugin.getServer()
+                        .getPluginManager()
+                        .getPlugin("Geyser-Spigot")
+                        .isEnabled()
+                && GeyserApi.api().isBedrockPlayer(player.getUniqueId())) {
+            WRAPPER.sendPacketExperienceChange(player, 20);
+        }
+
         open = true;
     }
 
@@ -246,6 +264,15 @@ public class AnvilGUI {
             WRAPPER.handleInventoryCloseEvent(player);
             WRAPPER.setActiveContainerDefault(player);
             WRAPPER.sendPacketCloseWindow(player, containerId);
+        }
+        if (geyserCompatibility
+                && plugin.getServer().getPluginManager().getPlugin("Geyser-Spigot") != null
+                && plugin.getServer()
+                        .getPluginManager()
+                        .getPlugin("Geyser-Spigot")
+                        .isEnabled()
+                && GeyserApi.api().isBedrockPlayer(player.getUniqueId())) {
+            WRAPPER.sendPacketExperienceChange(player, player.getLevel());
         }
 
         if (closeListener != null) {
@@ -432,6 +459,8 @@ public class AnvilGUI {
         private ClickHandler clickHandler;
         /** A state that decides where the anvil GUI is able to be closed by the user */
         private boolean preventClose = false;
+        /** A state that determines whether support for Geyser software is enabled */
+        private boolean geyserCompatibility = true;
         /** A set of integers containing the slot numbers that should be modifiable by the user. */
         private Set<Integer> interactableSlots = Collections.emptySet();
         /** The {@link Plugin} that this anvil GUI is associated with */
@@ -467,6 +496,14 @@ public class AnvilGUI {
          */
         public Builder preventClose() {
             preventClose = true;
+            return this;
+        }
+
+        /**
+         * Disables compatibility with Geyser software
+         */
+        public Builder disableGeyserCompat() {
+            geyserCompatibility = false;
             return this;
         }
 
@@ -707,6 +744,7 @@ public class AnvilGUI {
                     titleComponent,
                     new ItemStack[] {itemLeft, itemRight, itemOutput},
                     preventClose,
+                    geyserCompatibility,
                     interactableSlots,
                     closeListener,
                     concurrentClickHandlerExecution,

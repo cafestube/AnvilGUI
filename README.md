@@ -23,7 +23,7 @@ AnvilGUI requires the usage of Maven or a Maven compatible build system.
 <dependency>
     <groupId>eu.cafestube</groupId>
     <artifactId>anvilgui</artifactId>
-    <version>1.0.5-SNAPSHOT</version>
+    <version>1.0.7-SNAPSHOT</version>
 </dependency>
 
 <repository>
@@ -40,7 +40,7 @@ to prevent conflicts with other plugins. Here is an example of how to relocate t
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-shade-plugin</artifactId>
-            <version>${shade.version}</version> <!-- The version must be at least 3.3.0 -->
+            <version>${shade.version}</version> <!-- The version must be at least 3.5.0 -->
             <executions>
                 <execution>
                     <phase>package</phase>
@@ -159,7 +159,14 @@ Useful for situations like password input to play.
 ```java                     
 builder.preventClose();     
 ```                     
-     
+
+#### `geyserCompat()`
+This toggles compatibility with Geyser software, specifically being able to use AnvilGUI with 0 experience level on Bedrock.
+Enabled by default.
+```java
+builder.geyserCompat();
+```
+
 #### `text(Component)`
 Takes a `String` that contains what the initial text in the renaming field should be set to.
 ```java                                           
