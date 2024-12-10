@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "eu.cafestube"
-version = "1.0.7-SNAPSHOT"
+version = "1.0.8-SNAPSHOT"
 
 val versionSpecific = configurations.create("versionSpecific") {
     description = "Version Adapters to include in the JAR"
@@ -30,7 +30,7 @@ val versionSpecificReobf = configurations.create("versionSpecificReobf") {
 }
 
 val reobfVersions = listOf("1_19_R1", "1_19_1_R1", "1_19_3_R2", "1_19_4_R3", "1_20_R1")
-val versions = listOf("1_20_6_R4", "1_21_R1")
+val versions = listOf("1_20_6_R4", "1_21_R1", "1_21_R2")
 
 repositories {
     maven(url = "https://repo.opencollab.dev/main/")
