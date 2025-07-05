@@ -1,10 +1,10 @@
 buildscript {
     repositories {
         gradlePluginPortal()
-        maven("https://repo.papermc.io/repository/maven-public/")
+        maven("https:///repository/maven-public/")
     }
     dependencies {
-        classpath("io.papermc.paperweight.userdev:io.papermc.paperweight.userdev.gradle.plugin:1.7.1")
+        classpath("io.papermc.paperweight.userdev:io.papermc.paperweight.userdev.gradle.plugin:2.0.0-beta.17")
     }
 }
 
@@ -20,3 +20,4 @@ include(":1_20_R1")
 include(":1_20_6_R4")
 include(":1_21_R1")
 include(":1_21_R2")
+include(":1_21_R7")

@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-    paperDevBundle("1.19-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.19-R0.1-SNAPSHOT")
 
     implementation(project(":abstraction"))
     implementation(project(":1_19_1_R1"))
